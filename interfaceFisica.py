@@ -1,20 +1,6 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-#####################################################
-#Carareto
-#17/02/2018
-####################################################
-
-# Importa pacote de comunicação serial
 import serial
 
-# importa pacote para conversão binário ascii
 import binascii
-
-#################################
-# Interface com a camada física #
-#################################
 class fisica(object):
     def __init__(self, name):
         self.name        = name
