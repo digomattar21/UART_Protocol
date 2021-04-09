@@ -6,7 +6,7 @@ from multiprocessing import Process, Queue
 from datagrama import *
 from timeit import default_timer as timer
 
-serialName = "/dev/cu.usbmodem143101"               
+serialName = "/dev/cu.usbmodem144401"               
 
 def main():
 	try:
@@ -23,12 +23,14 @@ def main():
 			print("Comunicação ativa, threads e comunicação serial iniciados na porta {}".format(serialName))
 
 
-		log = open("cLog.txt","w")
+		log = open("Client5.txt","w")
+		time.sleep(0.1)
 		log.write('--------------------------------\n')
 		log.write('Início de transmissão - {}\n'.format(datetime.datetime.now()))
 		log.write('--------------------------------\n')
 		server_id = 0 
 		TIMEOUT = False
+		reenvio=0
 
 		while comecou:
 
@@ -64,16 +66,36 @@ def main():
 				while aguardando:
 
 					# rxBuffer,nRx = retry(com.getData(14))
-					nRx, rxBuffer = com.getData(14)
-					bufferLen = com.tx.getBufferLen()
+					try:
+						nRx, rxBuffer = com.getData(14)
+						print(nRx, rxBuffer)
+					except:
+						time.sleep(5)
+						tryagain = input('Servidor inativo apos 5 segundos, tentar novamente?[s/n]')
+						if tryagain =='s':
+							STATE='waiting'
+						else:
+							log.write("{} / envio / 5\n".format(datetime.datetime.now()))
+							log.close()
+							raise Exception('conexao perdida')
+						
 
 					log.write('{} / recebimento / 2 / {}\n'.format(datetime.datetime.now(),len(rxBuffer)))
-					if bufferLen == 14:
+					if rxBuffer[1] == 14:
 						STATE = "Connected"
 						aguardando = False
 						print("Servidor vivo e ativo!")
 						print("STATE: {}".format(STATE))
-
+					else:
+						time.sleep(5)
+						tryagain = input('Servidor inativo apos 5 segundos, tentar novamente?[s/n]')
+						if tryagain == 's':
+							STATE='waiting'
+						else:
+							STATE='Desconectado'
+							log.write("{} / envio / 5\n".format(datetime.datetime.now()))
+							log.close()
+							raise Exception('Conexao perdida')
 
 			if STATE == "Connected" and TIMEOUT == False:
 
@@ -130,17 +152,38 @@ def main():
 						log.write('{} / recebimento / 4 / {}\n'.format(datetime.datetime.now(),len(HeaderRxBuffer[0])))
 						print('{} / recebimento / 4 / {}\n'.format(datetime.datetime.now(),len(HeaderRxBuffer[0])))
 
-						if HeaderRespostaServer == "TIMEOUT":
+						if HeaderRespostaServer == 0:
 
-							print("TIMEOUT")
+							# print("TIMEOUT")
+							
 
-							log.write("{} / envio / 5\n".format(datetime.datetime.now()))
-							print(("{} / 5 - LOGGED".format(datetime.datetime.now())))
+							# log.write("{} / envio / 5\n".format(datetime.datetime.now()))
+							# print(("{} / 5 - LOGGED".format(datetime.datetime.now())))
 
-							TIMEOUT = True
-							STATE = "Desconectado"
-							print("STATE: Desconectado")
-							comecou = False
+							# TIMEOUT = True
+							# STATE = "Desconectado"
+							# print("STATE: Desconectado")
+							# comecou = False
+							reenvio+=1
+							if reenvio >4:
+								raise Exception('Server deconectado apos 20 segundos')
+							time.sleep(5)
+							header= setHead(3,0,server_id,nOfPackets,current_p,114,current_p,current_p-1,0,0)
+
+							print("header ok!")
+							payload = txBuffer[i:i+114]
+							print("payload ok!")
+							eop2 = (0).to_bytes(4,byteorder='big')
+							pkt_extra = header[0] + payload + eop2
+
+
+							com.sendData(pkt_extra)
+							log.write('{} / envio / 3 / {} / {} / 0 / {}\n'.format(datetime.datetime.now(),txSize, current_p, nOfPackets))
+							print('{} / envio / 3 / {} / {} / 0 / {} - LOGGED'.format(datetime.datetime.now(),txSize, current_p, nOfPackets))
+							print('Re enviando pacote anterior')
+							
+
+
 							
 
 						else:	
@@ -162,6 +205,7 @@ def main():
 							else:
 
 								print("Erro! Eop na posicao errada. Tamanho de payload incorreto")
+								
 
 							
 

@@ -5,13 +5,10 @@ from enlace import *
 import datetime
 from datagrama import *
 
-serialName = "/dev/cu.usbmodem143301"                  
+serialName = "/dev/cu.usbmodem144101"                  
 
 
 def main():
-
-
-
 	try:
    
 		com = enlace(serialName)
@@ -24,7 +21,7 @@ def main():
 		imageW = "./received.png" 
 		img = bytes(0)
 		server_id = 1
-		log = open('sLog.txt','w')
+		log = open('Server5.txt','w')
 		log.write('--------------------------------\n')
 		log.write('Início de transmissão - {}\n'.format(datetime.datetime.now()))
 		log.write('--------------------------------\n')
@@ -66,13 +63,13 @@ def main():
 						print("Verificação do header falhou")
 
 			if TIMEOUT == False and  STATE == "Alive":
-
 				rxBuffer, nRx = com.getData(10)
 				buffer = nRx[0]
+				print(rxBuffer, nRx)
 
 				print('Mensagem recebida')
 
-				if rxBuffer == "TIMEOUT":
+				if rxBuffer == 0:
 					print('TIMEOUT')
 					header = setHead(5,0,0,0,0,0,0,0,0,0)
 
